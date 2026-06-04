@@ -55,9 +55,16 @@ class PublicReleaseContractTests(unittest.TestCase):
 
     def test_public_readme_documents_dependency_fallback(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("work without private or local-only tools", readme)
-        self.assertIn("Optional accelerators", readme)
+        readme_en = (ROOT / "README.en.md").read_text(encoding="utf-8")
+        self.assertIn("没有私有工具或本地专用工具也能工作", readme)
+        self.assertIn("可选加速器", readme)
         self.assertIn("fallback", readme.lower())
+        self.assertIn("work without private or local-only tools", readme_en)
+        self.assertIn("Optional accelerators", readme_en)
+        self.assertIn("fallback", readme_en.lower())
+        for rel in ["README.en.md", ".gitattributes", "fixtures/", "evals/", "tests/"]:
+            self.assertIn(rel, readme)
+            self.assertIn(rel, readme_en)
 
     def test_no_private_paths_or_cache_surface(self) -> None:
         forbidden = ["C:\\Users\\", "D:\\research\\", "D:\\AI_Skills\\"]
