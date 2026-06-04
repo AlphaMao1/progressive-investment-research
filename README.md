@@ -1,40 +1,118 @@
 # Progressive Investment Research
 
-一个用于维护长期研究 dossier 的 agent skill。
-
-它不是报告生成器。它的核心任务是维护一个可恢复、可审计、可持续更新的研究模型：我们现在怎么看、证据是什么、哪里仍不确定、什么信号会改变判断，以及哪些文件是事实和模型的 canonical source。
+一个用于长期研究的 agent skill：把零散材料、判断、数字和开放问题维护成一个可恢复、可审计、可持续推进的研究模型。
 
 [English README](README.en.md)
 
-## 这个 Skill 解决什么问题
+## 它是什么
 
-- 为一个研究主题建立轻量 Markdown dossier。
-- 以 `current-synthesis.md` 作为人类恢复当前模型的入口。
-- 用 `model-map.md`、`modules/`、`models/`、`open-questions.md`、`update-log.md` 分离结论、证据、计算、开放问题和状态变化。
-- 把数字、假设、公式、来源质量、权限边界当成一等研究对象，而不是埋在长文里。
-- 适合投资研究、行业研究、公司研究、技术主题研究，以及任何会持续演化的问题。
+很多研究不是一次性报告，而是一个持续演化的判断系统。你今天读了一份材料，明天补了几个数字，下周又发现原判断有冲突。如果这些变化只散落在聊天记录、搜索结果和临时文档里，下一次接续时就会重新迷路。
 
-## 公开版依赖模型
+Progressive Investment Research 把研究维护成一个 dossier：
 
-公开版设计目标是：没有私有工具或本地专用工具也能工作。
+- `current-synthesis.md` 记录当前模型，让人和 agent 都能快速恢复状态。
+- `model-map.md` 记录研究边界、分析轴、模块和开放问题。
+- `modules/` 保存证据模块、概念框架、审计记录和关键 registry。
+- `models/` 保存公式、参数、情景和可复算推理。
+- `open-questions.md` 区分仍需推进的问题、已暂时关闭的问题和 watchlist。
+- `update-log.md` 记录模型为什么改变。
 
-核心能力只需要：
+它适合投资研究、行业研究、公司研究、技术主题研究，以及任何会持续更新的复杂问题。
 
-- 一个能读写文件的 agent runtime。
-- Python 3.10+，用于运行 `scripts/` 里的可选辅助脚本。
+## 它怎么运行
 
-可选加速器：
+```mermaid
+flowchart LR
+    A["新材料 / 新问题"] --> B["定位到 model-map"]
+    B --> C["读取当前模型"]
+    C --> D["抽取事实、数字、假设、冲突"]
+    D --> E{"模型是否改变？"}
+    E -- "没有改变" --> F["回答并记录限制"]
+    E -- "发生改变" --> G["更新 synthesis / module / model / open questions"]
+    G --> H["写入 update-log"]
+    H --> I["下一轮可恢复"]
+```
 
-- Web search 或 browser 工具，用于公开来源发现。
-- URL 正文抽取工具，用于已知网页。
-- PDF、Office、表格解析工具，用于用户提供的文件。
-- 本地工具，例如 AnySearch、web-access、markitdown、pdf/docx/xlsx/pptx skills、RSS pipeline 等。
+核心原则很简单：不要把所有东西写成一篇越来越长的报告，而是把研究拆成可恢复的状态、可追溯的证据和可复算的模型。
 
-如果这些加速器不存在，不要中断研究。直接使用当前 agent runtime 可用的搜索、浏览、URL fetch 或文件读取能力。fallback 规则很简单：记录来源、标注来源质量和权限状态，不要把搜索 snippet、二手摘要或未复核材料直接提升为模型结论。
+## 建立一个研究工作区
+
+安装后，在你希望保存研究 dossier 的位置运行：
+
+```powershell
+python scripts/scaffold_dossier.py "./my-topic" --title "My Topic"
+```
+
+这会生成一个最小工作区：
+
+```text
+my-topic/
+  context.md
+  current-synthesis.md
+  model-map.md
+  open-questions.md
+  update-log.md
+  modules/
+```
+
+然后让 agent 从这个目录开始工作，例如：
+
+```text
+使用 progressive-investment-research，接续 ./my-topic。
+先读 current-synthesis.md 和 model-map.md，告诉我当前模型是什么，以及下一步最值得推进的问题。
+```
+
+验证工作区结构：
+
+```powershell
+python scripts/validate_dossier.py "./my-topic" --strict
+```
+
+打印当前索引：
+
+```powershell
+python scripts/regenerate_index.py "./my-topic" --stdout
+```
+
+## 推荐工作流
+
+```mermaid
+flowchart TD
+    S["冷启动"] --> M["建立最小 model-map"]
+    M --> C["写第一版 Current Model"]
+    C --> Q["列出开放问题"]
+    Q --> R["逐轮读取材料 / 搜索 / 比较"]
+    R --> U["只在模型变化时更新文件"]
+    U --> L["update-log 记录变化"]
+    L --> R
+```
+
+常见任务可以这样交给 agent：
+
+- “接续这个 dossier，先恢复当前模型。”
+- “吸收这份材料，但不要直接改结论；先告诉我它会影响哪个模块。”
+- “把这个数字加入模型前，检查来源、口径、时间和是否可复算。”
+- “现在有哪些 active questions？哪些只是 monitor？”
+- “这轮研究结束后，更新 Current Model 和 update-log。”
+
+## 文件应该怎么用
+
+| 文件 / 目录 | 用途 | 什么时候更新 |
+| --- | --- | --- |
+| `context.md` | 工作区入口、范围、接续协议 | 冷启动、范围改变、接续规则改变 |
+| `current-synthesis.md` | 当前模型，人类恢复入口 | 结论或关键不确定性改变 |
+| `model-map.md` | 研究边界、分析轴、模块地图 | 研究结构改变 |
+| `open-questions.md` | active / monitor / watchlist 状态 | 问题状态改变 |
+| `update-log.md` | 模型变化日志 | 每次实质更新后 |
+| `modules/` | 证据、框架、审计、registry | 某个主题需要稳定承载 |
+| `models/` | 计算模型、情景、公式 | 判断依赖数字、公式或敏感性 |
+| `companies/` | 公司 watchlist cards | 研究进入公司级跟踪 |
+| `data/` | canonical rows / CSV | 模型需要结构化数据 |
+| `archive/` | 默认不读的历史材料 | 压缩 active surface 时 |
 
 ## 安装
 
-把这个目录复制到你的 agent skill/plugin 目录，或者在支持本地 skill 加载的 runtime 中直接指向这个文件夹。
+把这个仓库复制到你的 agent skill/plugin 目录，或让 runtime 直接指向这个文件夹。
 
 Codex 风格加载需要：
 
@@ -49,52 +127,26 @@ Claude 风格加载还包含：
 - `.claude-plugin/plugin.json`
 - `agents/`
 
-## 快速开始
+## 依赖与 fallback
 
-创建一个新 dossier：
+核心能力只要求 agent 能读写文件。`scripts/` 里的辅助脚本只依赖 Python 标准库。
 
-```powershell
-python scripts/scaffold_dossier.py "./my-topic" --title "My Topic"
+外部搜索、浏览器、URL 抽取、PDF/Office 解析、AnySearch、web-access、markitdown 等都只是加速器。没有这些工具时，仍然可以继续研究：
+
+1. 使用当前 runtime 可用的搜索、浏览或文件读取能力。
+2. 在 Source Card 或模块里记录来源、权限状态和获取方式。
+3. 把搜索摘要、二手材料和未复核数字先作为 source lead，不要直接写成模型事实。
+
+## 示例
+
+`fixtures/ai-industry-chain-mini/` 是一个去敏的 mini dossier，用来展示这个 skill 的工作方式。它不是投资建议，也不是完整研究数据库。
+
+你可以让 agent 读取它：
+
+```text
+使用 progressive-investment-research，读取 fixtures/ai-industry-chain-mini。
+请说明 Current Model、Model Map、Open Questions 分别承担什么职责。
 ```
-
-验证 dossier：
-
-```powershell
-python scripts/validate_dossier.py "./my-topic" --strict
-```
-
-打印简单索引：
-
-```powershell
-python scripts/regenerate_index.py "./my-topic" --stdout
-```
-
-## Dossier 结构
-
-最小活跃面：
-
-- `context.md`：入口协议、范围、接续说明。
-- `current-synthesis.md`：当前模型和人类恢复入口。
-- `model-map.md`：研究边界、分析轴、模块和开放问题。
-- `open-questions.md`：`active` / `monitor` / `watchlist` 状态索引。
-- `update-log.md`：模型变化日志。
-- `modules/`：证据模块、概念模块、registry、审计记录。
-
-按需增加：
-
-- `models/`：计算模型和公式驱动的推理。
-- `companies/`：公司 watchlist cards。
-- `data/`：模型使用的 canonical rows 或 CSV。
-- `archive/`：默认不读取的历史材料和生成物。
-
-## 示例 Fixture
-
-`fixtures/ai-industry-chain-mini/` 是一个基于长期研究 dossier 结构模式重构的公开 mini fixture。它已经去敏：
-
-- 用来展示当前 skill contract。
-- 内容是 public-style 和 illustrative 的。
-- 不是投资建议。
-- 不是完整研究数据库。
 
 ## 测试
 
@@ -105,27 +157,6 @@ python tests/test_contract.py
 ```
 
 测试只使用 Python 标准库。
-
-## 发布边界
-
-公开仓库应保留：
-
-- `SKILL.md`
-- `.codex-plugin/`
-- `.claude-plugin/`
-- `.gitattributes`
-- `agents/`
-- `references/`
-- `scripts/`
-- `templates/`
-- `fixtures/`
-- `evals/`
-- `tests/`
-- `README.md`
-- `README.en.md`
-- `LICENSE`
-
-不要提交本地 dossier、私有材料、缓存目录、生成报告、`.env` 文件或 Python bytecode。
 
 ## License
 

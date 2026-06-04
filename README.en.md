@@ -1,40 +1,120 @@
 # Progressive Investment Research
 
-Progressive Investment Research is an agent skill for maintaining a long-running research dossier.
+An agent skill for long-running research: it keeps scattered materials, judgments, numbers, and open questions organized as a recoverable and auditable research model.
 
-It is not a report generator. Its core job is to keep one recoverable research model current: what we believe now, what evidence supports it, what is still uncertain, what would change the view, and which files are the canonical source of truth.
+[中文 README](README.md)
 
-## What This Skill Does
+## What It Is
 
-- Builds a lightweight Markdown dossier for a research topic.
-- Keeps `current-synthesis.md` as the human recovery entry point.
-- Uses `model-map.md`, `modules/`, `models/`, `open-questions.md`, and `update-log.md` to separate conclusions, evidence, calculations, and state.
-- Treats numbers, assumptions, formulas, source quality, and permission boundaries as first-class research objects.
-- Supports investment, industry, company, technology, and thematic research where the question evolves over time.
+Much research is not a one-off report. It is an evolving judgment system. You read a source today, add numbers tomorrow, and discover a conflict next week. If those changes live only in chats, search results, and temporary documents, every continuation starts half-lost.
 
-## Public Version Dependency Model
+Progressive Investment Research maintains the work as a dossier:
 
-The public version is designed to work without private or local-only tools.
+- `current-synthesis.md` keeps the current model, so humans and agents can recover the state quickly.
+- `model-map.md` records the research boundary, analysis axes, modules, and open questions.
+- `modules/` stores evidence modules, conceptual frameworks, audits, and registries.
+- `models/` stores formulas, assumptions, scenarios, and reproducible reasoning.
+- `open-questions.md` separates active questions, closed-for-now monitors, and watchlist items.
+- `update-log.md` records why the model changed.
 
-Core functionality only requires:
+It is useful for investment research, industry research, company research, technology mapping, and any complex question that keeps evolving.
 
-- An agent runtime that can read and write files.
-- Python 3.10+ for the optional helper scripts in `scripts/`.
+## How It Works
 
-Optional accelerators:
+```mermaid
+flowchart LR
+    A["New material / question"] --> B["Locate it in model-map"]
+    B --> C["Read the current model"]
+    C --> D["Extract facts, numbers, assumptions, conflicts"]
+    D --> E{"Did the model change?"}
+    E -- "No" --> F["Answer and state limits"]
+    E -- "Yes" --> G["Update synthesis / module / model / open questions"]
+    G --> H["Write update-log"]
+    H --> I["Recoverable next time"]
+```
 
-- Web search or browser tools for public-source discovery.
-- URL extraction tools for known web pages.
-- PDF, Office, or spreadsheet parsers for user-provided files.
-- Local tools such as AnySearch, web-access, markitdown, pdf/docx/xlsx/pptx skills, or RSS pipelines.
+The core idea is simple: do not turn everything into one ever-growing report. Keep the research split into recoverable state, traceable evidence, and reproducible models.
 
-When an optional accelerator is missing, use the agent runtime's available search, browser, URL fetch, or file-reading capability. The fallback rule is simple: capture the source, mark its quality and permission status, and do not promote snippets or secondary material directly into the model.
+## Create A Research Workspace
+
+After installation, run this where you want to keep the dossier:
+
+```powershell
+python scripts/scaffold_dossier.py "./my-topic" --title "My Topic"
+```
+
+This creates a minimal workspace:
+
+```text
+my-topic/
+  context.md
+  current-synthesis.md
+  model-map.md
+  open-questions.md
+  update-log.md
+  modules/
+```
+
+Then ask the agent to work from that directory:
+
+```text
+Use progressive-investment-research and continue ./my-topic.
+First read current-synthesis.md and model-map.md, then tell me the current model and the next highest-value question.
+```
+
+Validate the workspace:
+
+```powershell
+python scripts/validate_dossier.py "./my-topic" --strict
+```
+
+Print a simple index:
+
+```powershell
+python scripts/regenerate_index.py "./my-topic" --stdout
+```
+
+## Recommended Workflow
+
+```mermaid
+flowchart TD
+    S["Cold start"] --> M["Create a minimal model-map"]
+    M --> C["Write the first Current Model"]
+    C --> Q["List open questions"]
+    Q --> R["Read / search / compare in cycles"]
+    R --> U["Update files only when the model changes"]
+    U --> L["Record changes in update-log"]
+    L --> R
+```
+
+Good prompts:
+
+- "Continue this dossier and recover the current model first."
+- "Absorb this source, but do not change the conclusion yet; tell me which module it affects."
+- "Before adding this number to the model, check its source, definition, date, and whether it is reproducible."
+- "Which questions are active, and which are only monitors?"
+- "At the end of this round, update Current Model and update-log."
+
+## How To Use The Files
+
+| File / directory | Purpose | Update when |
+| --- | --- | --- |
+| `context.md` | Workspace entry, scope, continuation protocol | Cold start, scope change, continuation rule change |
+| `current-synthesis.md` | Current model and human recovery entry | Conclusion or key uncertainty changes |
+| `model-map.md` | Research boundary, axes, module map | Research structure changes |
+| `open-questions.md` | Active / monitor / watchlist state | Question state changes |
+| `update-log.md` | Model change log | After each material update |
+| `modules/` | Evidence, frameworks, audits, registries | A topic needs stable storage |
+| `models/` | Calculation models, scenarios, formulas | Reasoning depends on numbers or sensitivity |
+| `companies/` | Company watchlist cards | Research moves to company-level tracking |
+| `data/` | Canonical rows / CSV | A model needs structured data |
+| `archive/` | Historical material outside the default read path | Active surface needs compression |
 
 ## Install
 
-Copy this directory into your agent's skill/plugin directory, or point the runtime at this folder if it supports local skill loading.
+Copy this repository into your agent's skill/plugin directory, or point the runtime at this folder.
 
-For Codex-style skill loading, the folder contains:
+For Codex-style loading, the folder contains:
 
 - `SKILL.md`
 - `.codex-plugin/plugin.json`
@@ -42,57 +122,31 @@ For Codex-style skill loading, the folder contains:
 - `templates/`
 - `scripts/`
 
-For Claude-style loading, the folder also contains:
+For Claude-style loading, it also includes:
 
 - `.claude-plugin/plugin.json`
 - `agents/`
 
-## Quick Start
+## Dependencies And Fallback
 
-Create a new dossier:
+The core skill only requires an agent that can read and write files. The helper scripts in `scripts/` use only the Python standard library.
 
-```powershell
-python scripts/scaffold_dossier.py "./my-topic" --title "My Topic"
+External search, browsers, URL extraction, PDF/Office parsing, AnySearch, web-access, markitdown, and similar tools are accelerators. If they are unavailable, the research can still continue:
+
+1. Use whatever search, browser, or file-reading capability the current runtime provides.
+2. Record the source, permission status, and acquisition method in a Source Card or module.
+3. Treat search summaries, secondary material, and unverified numbers as source leads, not model facts.
+
+## Example
+
+`fixtures/ai-industry-chain-mini/` is a sanitized mini dossier that demonstrates how the skill works. It is not investment advice and not a complete research database.
+
+Try:
+
+```text
+Use progressive-investment-research and read fixtures/ai-industry-chain-mini.
+Explain what Current Model, Model Map, and Open Questions each do.
 ```
-
-Validate the dossier:
-
-```powershell
-python scripts/validate_dossier.py "./my-topic" --strict
-```
-
-Print a simple dossier index:
-
-```powershell
-python scripts/regenerate_index.py "./my-topic" --stdout
-```
-
-## Dossier Shape
-
-Minimum active surface:
-
-- `context.md`: entry protocol, scope, and continuation notes.
-- `current-synthesis.md`: current model and recovery entry point.
-- `model-map.md`: research boundary, axes, modules, and open questions.
-- `open-questions.md`: active / monitor / watchlist state index.
-- `update-log.md`: model changes over time.
-- `modules/`: evidence modules, concept modules, registries, and audits.
-
-On demand:
-
-- `models/`: calculation models and formula-backed reasoning.
-- `companies/`: company watchlist cards.
-- `data/`: canonical rows or CSVs used by models.
-- `archive/`: non-default reading surface.
-
-## Example Fixture
-
-`fixtures/ai-industry-chain-mini/` is a small public fixture rebuilt from the structural pattern of a long-running research dossier. It is intentionally sanitized:
-
-- It demonstrates the current contract.
-- It uses public-style and illustrative content.
-- It is not investment advice.
-- It is not a full research database.
 
 ## Tests
 
@@ -102,28 +156,7 @@ Run the lightweight contract tests:
 python tests/test_contract.py
 ```
 
-The tests use only Python's standard library.
-
-## Release Boundary
-
-Keep these in the public repository:
-
-- `SKILL.md`
-- `.codex-plugin/`
-- `.claude-plugin/`
-- `.gitattributes`
-- `agents/`
-- `references/`
-- `scripts/`
-- `templates/`
-- `fixtures/`
-- `evals/`
-- `tests/`
-- `README.md`
-- `README.en.md`
-- `LICENSE`
-
-Do not commit local dossiers, private materials, cache directories, generated reports, `.env` files, or bytecode caches.
+The tests use only the Python standard library.
 
 ## License
 

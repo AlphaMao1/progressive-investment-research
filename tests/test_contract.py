@@ -53,16 +53,30 @@ class PublicReleaseContractTests(unittest.TestCase):
         for rel in expected:
             self.assertTrue((FIXTURE / rel).is_file(), rel)
 
-    def test_public_readme_documents_dependency_fallback(self) -> None:
+    def test_public_readmes_explain_usage_and_fallback(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         readme_en = (ROOT / "README.en.md").read_text(encoding="utf-8")
-        self.assertIn("没有私有工具或本地专用工具也能工作", readme)
-        self.assertIn("可选加速器", readme)
-        self.assertIn("fallback", readme.lower())
-        self.assertIn("work without private or local-only tools", readme_en)
-        self.assertIn("Optional accelerators", readme_en)
-        self.assertIn("fallback", readme_en.lower())
-        for rel in ["README.en.md", ".gitattributes", "fixtures/", "evals/", "tests/"]:
+        for phrase in [
+            "它是什么",
+            "它怎么运行",
+            "建立一个研究工作区",
+            "推荐工作流",
+            "依赖与 fallback",
+            "python scripts/scaffold_dossier.py",
+            "fixtures/ai-industry-chain-mini",
+        ]:
+            self.assertIn(phrase, readme)
+        for phrase in [
+            "What It Is",
+            "How It Works",
+            "Create A Research Workspace",
+            "Recommended Workflow",
+            "Dependencies And Fallback",
+            "python scripts/scaffold_dossier.py",
+            "fixtures/ai-industry-chain-mini",
+        ]:
+            self.assertIn(phrase, readme_en)
+        for rel in ["current-synthesis.md", "model-map.md", "open-questions.md", "update-log.md"]:
             self.assertIn(rel, readme)
             self.assertIn(rel, readme_en)
 
